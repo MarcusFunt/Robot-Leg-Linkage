@@ -1,0 +1,36 @@
+name: Analysis regression CI
+
+on:
+  pull_request:
+    paths:
+      - "robot-leg-linkage-lab-source-v5/robot-leg-linkage-lab/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: robot-leg-linkage-lab-source-v5/robot-leg-linkage-lab
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: robot-leg-linkage-lab-source-v5/robot-leg-linkage-lab/package-lock.json
+
+      - name: Normalize script permissions
+        run: chmod +x scripts/*.sh
+
+      - name: Install locked dependencies
+        run: npm run install:ci
+
+      - name: Build and run regression tests
+        run: npm test
