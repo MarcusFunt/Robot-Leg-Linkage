@@ -1,6 +1,8 @@
 # High-resolution UI screenshots
 
-The UI screenshot harness lives in `scripts/capture-ui.mjs`. It uses a pinned Playwright runtime (`1.62.0`) installed into the gitignored `.ui-screenshot-runtime/` directory, so the application dependency lockfile does not need to include browser automation tooling.
+The UI screenshot harness lives in `scripts/capture-ui.mjs`. It is intentionally **local-only**: the repository does not run screenshot generation in GitHub Actions and does not upload screenshot artifacts.
+
+The harness uses a pinned Playwright runtime (`1.62.0`) installed into the gitignored `.ui-screenshot-runtime/` directory, so the application dependency lockfile does not need to include browser automation tooling.
 
 ## What it captures
 
@@ -45,29 +47,25 @@ Use a custom URL or output directory with:
 node scripts/capture-ui.mjs --url http://127.0.0.1:4173/ --out screenshots/custom
 ```
 
-## Capture the deployed GitHub Pages site
+## Capture the deployed GitHub Pages site from your local machine
+
+This still runs Playwright and Chromium on your own computer; GitHub only serves the already-deployed website.
 
 ```bash
 npm run screenshots:live
 ```
 
-For the largest possible review set:
+For the largest possible local review set:
 
 ```bash
 npm run screenshots:maximal
 ```
 
-## GitHub Actions
+## GitHub Actions and artifacts
 
-`.github/workflows/ui-screenshots.yml` runs on:
+Screenshot generation is deliberately **not** configured as a GitHub Actions workflow. Running the local commands above does not consume GitHub-hosted runner time and does not create GitHub Actions artifacts.
 
-- pull requests targeting `main`
-- pushes to `main`
-- manual `workflow_dispatch`
-
-The workflow builds the exact commit as a static site, serves it locally, installs Chromium plus its Linux dependencies, runs the screenshot harness, and uploads the resulting `screenshots/ci/` directory as a GitHub Actions artifact retained for 30 days.
-
-When manually dispatching the workflow, enable the **maximal** input to capture fullscreen plot states at every configured viewport.
+The normal project workflows for unrelated tasks, such as the existing regression checks or Pages deployment, are separate from this screenshot harness.
 
 ## Notes
 
