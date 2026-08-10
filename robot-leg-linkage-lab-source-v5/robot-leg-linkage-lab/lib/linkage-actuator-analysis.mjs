@@ -33,8 +33,13 @@ export function summarizeAnalysis(config, motionAnalysis, staticAnalysis, curren
   const peakMotorSpeedRpm = motionValid
     ? Math.max(...motionAnalysis.samples.map((sample) => Math.abs(sample.omega))) * ratio * 60 / (2 * Math.PI)
     : null;
-  const peakMechanicalPowerW = motionValid
-    ? Math.max(...motionAnalysis.samples.map((sample) => sample.linkPowerW === null ? 0 : Math.abs(sample.linkPowerW))) / efficiency
+  const peakLoadedInputPowerW = motionValid ? motionAnalysis.peaks.peakLoadedPower.value : null;
+  const peakMechanicalPowerW = peakLoadedInputPowerW !== null ? peakLoadedInputPowerW / efficiency : null;
+  const rmsLoadedInputTorque = motionValid
+    ? timeRms(motionAnalysis.samples, (sample) => sample.dynamics ? sample.dynamics.torque : NaN)
+    : null;
+  const rmsSelfInputTorque = motionValid
+    ? timeRms(motionAnalysis.samples, (sample) => sample.selfDynamics ? sample.selfDynamics.torque : NaN)
     : null;
   const peakStaticHoldTorque = staticValid ? staticAnalysis.peaks.peakHoldingTorque.value : null;
   const peakStaticMotorTorque = peakStaticHoldTorque !== null ? peakStaticHoldTorque / (ratio * efficiency) : null;
@@ -57,7 +62,10 @@ export function summarizeAnalysis(config, motionAnalysis, staticAnalysis, curren
     peakMotorTorque,
     rmsMotorTorque,
     peakMotorSpeedRpm,
+    peakLoadedInputPowerW,
     peakMechanicalPowerW,
+    rmsLoadedInputTorque,
+    rmsSelfInputTorque,
     peakStaticHoldTorque,
     peakStaticMotorTorque,
     currentStaticMotorTorque,
