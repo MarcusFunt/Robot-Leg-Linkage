@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { clamp } from "../lib/linkage-analysis.mjs";
 import type { AnalysisSummary, CycleSample, PeakResult } from "../lib/linkage-analysis.mjs";
 import { validateNumericValue } from "../lib/input-validation.mjs";
@@ -57,15 +57,74 @@ export function safetyText(summary: AnalysisSummary | null, value: number | null
   return Number.isFinite(value) ? `${value.toFixed(1)}×` : "∞";
 }
 
-export function Plot({ title, unit, samples, currentAngle, value, range, alertBelow }: { title: string; unit: string; samples: CycleSample[]; currentAngle: number; value: (s: CycleSample) => number | null; range?: [number, number]; alertBelow?: number }) {
-  const width = 720, height = 220, m = { l: 46, r: 14, t: 28, b: 30 };
-  const points = samples.map((s) => ({ angle: s.angle, v: value(s) })).filter((p): p is { angle: number; v: number } => p.v !== null && Number.isFinite(p.v));
+type PlotProps = {
+  title: string;
+  unit: string;
+  samples: CycleSample[];
+  currentAngle: number;
+  value: (sample: CycleSample) => number | null;
+  range?: [number, number];
+  alertBelow?: number;
+  onAngleChange?: (angle: number) => void;
+};
+
+export function Plot({ title, unit, samples, currentAngle, value, range, alertBelow, onAngleChange }: PlotProps) {
+  const [compact, setCompact] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 620px)");
+    const sync = () => setCompact(query.matches);
+    sync(); query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  const width = 720, height = 240, m = { l: 48, r: 16, t: 28, b: 36 };
+  const finite = samples.map((sample) => ({ angle: sample.angle, v: value(sample) })).filter((point): point is { angle: number; v: number } => point.v !== null && Number.isFinite(point.v));
   const x0 = samples[0]?.angle ?? 0, x1 = samples.at(-1)?.angle ?? 360, dx = Math.max(1e-9, x1 - x0);
-  let y0 = range?.[0] ?? Math.min(0, ...points.map((p) => p.v)); let y1 = range?.[1] ?? Math.max(0, ...points.map((p) => p.v));
+  let y0 = range?.[0] ?? Math.min(0, ...finite.map((point) => point.v));
+  let y1 = range?.[1] ?? Math.max(0, ...finite.map((point) => point.v));
   if (!range) { const pad = Math.max(1e-6, y1 - y0) * 0.08; y0 -= pad; y1 += pad; }
-  const dy = Math.max(1e-9, y1 - y0), sx = (a: number) => m.l + (a - x0) / dx * (width - m.l - m.r), sy = (v: number) => m.t + (y1 - v) / dy * (height - m.t - m.b);
-  const d = points.map((p, i) => `${i ? "L" : "M"}${sx(p.angle).toFixed(1)},${sy(p.v).toFixed(1)}`).join(" ");
-  return <article className="plot-card"><div className="plot-heading"><div><h3>{title}</h3><span>{unit}</span></div></div><div className="plot-scroll"><svg viewBox={`0 0 ${width} ${height}`} className="plot-svg" role="img" aria-label={title}>{alertBelow !== undefined ? <rect x={m.l} y={sy(Math.min(alertBelow, y1))} width={width-m.l-m.r} height={Math.max(0, sy(y0)-sy(Math.min(alertBelow,y1)))} className="plot-alert-band" /> : null}{[0,.25,.5,.75,1].map((f) => { const yy=m.t+f*(height-m.t-m.b); const val=y1-f*dy; return <g key={f}><line x1={m.l} y1={yy} x2={width-m.r} y2={yy} className="plot-grid-line"/><text x={m.l-7} y={yy+4} textAnchor="end" className="plot-tick">{val.toFixed(Math.abs(val)<10?1:0)}</text></g>; })}<path d={d} fill="none" stroke="var(--orange)" className="plot-line"/><line x1={sx(clamp(currentAngle,x0,x1))} y1={m.t} x2={sx(clamp(currentAngle,x0,x1))} y2={height-m.b} className="plot-cursor"/></svg></div></article>;
+  const dy = Math.max(1e-9, y1 - y0);
+  const sx = (angle: number) => m.l + (angle - x0) / dx * (width - m.l - m.r);
+  const sy = (v: number) => m.t + (y1 - v) / dy * (height - m.t - m.b);
+  let path = "", drawing = false;
+  for (const sample of samples) {
+    const v = value(sample);
+    if (v === null || !Number.isFinite(v)) { drawing = false; continue; }
+    path += `${drawing ? "L" : "M"}${sx(sample.angle).toFixed(1)},${sy(v).toFixed(1)} `;
+    drawing = true;
+  }
+
+  const renderSvg = (detail: boolean) => {
+    const fractions = compact && !detail ? [0, 0.5, 1] : [0, 0.25, 0.5, 0.75, 1];
+    const selectAngle = (event: ReactPointerEvent<SVGRectElement>) => {
+      if (!detail || !onAngleChange) return;
+      const bounds = event.currentTarget.getBoundingClientRect();
+      const fraction = clamp((event.clientX - bounds.left) / Math.max(1, bounds.width), 0, 1);
+      onAngleChange(x0 + fraction * dx);
+    };
+    return <svg viewBox={`0 0 ${width} ${height}`} className="plot-svg" role="img" aria-label={`${title}. Current crank angle ${currentAngle.toFixed(1)} degrees.`}>
+      {alertBelow !== undefined ? <rect x={m.l} y={sy(Math.min(alertBelow, y1))} width={width-m.l-m.r} height={Math.max(0, sy(y0)-sy(Math.min(alertBelow,y1)))} className="plot-alert-band" /> : null}
+      {fractions.map((f) => { const yy=m.t+f*(height-m.t-m.b); const val=y1-f*dy; return <g key={`y-${f}`}><line x1={m.l} y1={yy} x2={width-m.r} y2={yy} className="plot-grid-line"/><text x={m.l-7} y={yy+4} textAnchor="end" className="plot-tick">{val.toFixed(Math.abs(val)<10?1:0)}</text></g>; })}
+      {fractions.map((f) => { const angle=x0+f*dx; const xx=sx(angle); return <g key={`x-${f}`}><line x1={xx} y1={m.t} x2={xx} y2={height-m.b} className="plot-grid-line vertical"/><text x={xx} y={height-11} textAnchor="middle" className="plot-tick">{angle.toFixed(compact&&!detail?0:1)}°</text></g>; })}
+      <path d={path.trim()} fill="none" stroke="var(--orange)" className="plot-line"/>
+      <line x1={sx(clamp(currentAngle,x0,x1))} y1={m.t} x2={sx(clamp(currentAngle,x0,x1))} y2={height-m.b} className="plot-cursor"/>
+      {detail && onAngleChange ? <rect x={m.l} y={m.t} width={width-m.l-m.r} height={height-m.t-m.b} className="plot-detail-hit" onPointerDown={selectAngle}/> : null}
+    </svg>;
+  };
+
+  return <>
+    <article className="plot-card">
+      <div className="plot-heading"><div><h3>{title}</h3><span>{unit}</span></div><button type="button" className="plot-expand-button" onClick={() => setExpanded(true)}>Fullscreen</button></div>
+      <button type="button" className="plot-overview-button" aria-label={`Open detailed ${title} plot`} onClick={() => setExpanded(true)}>{renderSvg(false)}</button>
+    </article>
+    {expanded ? <div className="plot-modal" role="dialog" aria-modal="true" aria-label={`${title} detailed plot`} onClick={() => setExpanded(false)}>
+      <div className="plot-modal-panel" onClick={(event) => event.stopPropagation()}>
+        <div className="plot-modal-heading"><div><strong>{title}</strong><span>{unit} · tap chart to move θ₂</span></div><button type="button" onClick={() => setExpanded(false)} aria-label="Close detailed plot">Close</button></div>
+        <div className="plot-modal-chart">{renderSvg(true)}</div>
+      </div>
+    </div> : null}
+  </>;
 }
 
 export function fieldGroups(config: Config): Group[] {
@@ -81,4 +140,3 @@ export function fieldGroups(config: Config): Group[] {
     ]},
   ];
 }
-
