@@ -1,4 +1,4 @@
-import { RAD, motionWindowReachability, sampleAngleRange, solvePose } from "./linkage-geometry.mjs";
+import { RAD, motionWindowReachability, sampleAngleRange, solvePose, mul, sub } from "./linkage-geometry.mjs";
 import { kinematicStateAtAngle } from "./linkage-kinematics.mjs";
 import { inverseDynamics } from "./linkage-dynamics.mjs";
 
@@ -19,9 +19,12 @@ function finitePeak(samples, metric, mode = "max") {
 }
 
 export function staticInputTorqueFromJacobian(config, angleDegrees, force = { x: 0, y: 0 }) {
-  const state = kinematicStateAtAngle(config, angleDegrees);
-  if (!state) return null;
-  const derivative = state.kinematics.toolDerivative;
+  const hDegrees = 1e-3;
+  const before = solvePose(config, angleDegrees - hDegrees);
+  const after = solvePose(config, angleDegrees + hDegrees);
+  if (!before || !after) return null;
+  const dTheta = 2 * hDegrees * RAD;
+  const derivative = mul(sub(after.T, before.T), 1 / dTheta);
   return -(force.x * derivative.x + force.y * derivative.y) / 1000;
 }
 
@@ -32,7 +35,7 @@ export function staticSupportFromKinematicState(config, state, supportForce = co
   const singularVertical = effectiveMomentArmMm < 1e-6;
   const verticalSupportPerInputTorque = singularVertical ? Infinity : 1000 / effectiveMomentArmMm;
   const normalizedMechanicalAdvantage = singularVertical ? Infinity : config.crank / effectiveMomentArmMm;
-  const supportTorque = -(supportForce * state.kinematics.toolDerivative.y) / 1000;
+  const supportTorque = staticInputTorqueFromJacobian(config, state.angle, { x: 0, y: supportForce });
   const gravityTorque = inverseDynamics(config, state, { omega: 0, alpha: 0 }, { x: 0, y: 0 })?.torque ?? null;
   const holdingTorque = inverseDynamics(config, state, { omega: 0, alpha: 0 }, { x: 0, y: supportForce })?.torque ?? null;
   return {
