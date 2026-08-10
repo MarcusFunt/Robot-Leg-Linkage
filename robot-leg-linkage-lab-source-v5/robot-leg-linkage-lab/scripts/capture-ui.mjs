@@ -83,9 +83,28 @@ function relativeOutput(file) {
 
 function runCommand(command, args) {
   const result = spawnSync(command, args, { stdio: "inherit" });
+  if (result.error) {
+    throw new Error(`${command} failed to start: ${result.error.message}`, { cause: result.error });
+  }
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} exited with status ${result.status ?? "unknown"}.`);
   }
+}
+
+function runNpm(args) {
+  const npmCli = process.env.npm_execpath;
+  if (npmCli && existsSync(npmCli)) {
+    runCommand(process.execPath, [npmCli, ...args]);
+    return;
+  }
+
+  if (process.platform === "win32") {
+    const commandProcessor = process.env.ComSpec ?? "cmd.exe";
+    runCommand(commandProcessor, ["/d", "/s", "/c", "npm.cmd", ...args]);
+    return;
+  }
+
+  runCommand("npm", args);
 }
 
 async function ensurePlaywrightRuntime() {
@@ -97,11 +116,10 @@ async function ensurePlaywrightRuntime() {
 
   const moduleEntry = path.join(RUNTIME_DIR, "node_modules", "playwright", "index.mjs");
   const cliEntry = path.join(RUNTIME_DIR, "node_modules", "playwright", "cli.js");
-  const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
   if (!existsSync(moduleEntry)) {
     console.log(`Installing Playwright ${PLAYWRIGHT_VERSION} into ${RUNTIME_DIR}`);
-    runCommand(npmCommand, [
+    runNpm([
       "install",
       "--prefix",
       RUNTIME_DIR,
