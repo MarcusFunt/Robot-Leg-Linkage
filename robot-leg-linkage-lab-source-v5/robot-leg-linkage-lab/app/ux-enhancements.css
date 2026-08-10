@@ -1,0 +1,554 @@
+/* Simulator-first UX refinement layer. Loaded last so it can safely override legacy responsive rules. */
+:root {
+  --semantic-current: var(--cyan);
+  --semantic-dynamic: var(--orange);
+  --semantic-static: #e7c653;
+  --semantic-path: var(--violet);
+  --semantic-pass: var(--good);
+  --semantic-warning: var(--warning);
+  --semantic-critical: var(--danger);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(14px);
+}
+
+.brand-lockup { order: 1; margin-right: auto; }
+.header-status { order: 3; }
+.mobile-jump { display: none !important; }
+
+.ux-section-nav {
+  order: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(94px, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(242, 241, 236, 0.9);
+}
+
+.ux-section-nav a {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #536a72;
+  font-size: 11px;
+  font-weight: 720;
+  text-decoration: none;
+  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.ux-section-nav a:hover,
+.ux-section-nav a:focus-visible {
+  background: #e8eeea;
+  color: var(--ink);
+}
+
+.ux-section-nav a.active {
+  background: var(--navy);
+  color: white;
+  box-shadow: inset 0 -2px 0 var(--semantic-current);
+}
+
+.ux-nav-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--semantic-critical);
+  color: white;
+  font: 800 9px/1 var(--font-geist-mono), monospace;
+}
+
+/* Keep the simulator and its live state together as one real layout box.
+   This removes the display:contents/order bug that could place plots above it. */
+.workspace {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.analysis-area {
+  order: 1 !important;
+  width: 100%;
+  padding: 22px clamp(18px, 2.5vw, 40px) 0;
+  display: grid !important;
+  grid-template-columns: minmax(0, 2.3fr) minmax(280px, 0.82fr);
+  grid-template-areas:
+    "sim metrics"
+    "sim state"
+    "support support"
+    "motion motion";
+  gap: 14px;
+}
+
+.analysis-area > * { order: initial !important; min-width: 0; }
+.analysis-area > .simulator-card { grid-area: sim; margin: 0 !important; }
+.analysis-area > .metric-grid { grid-area: metrics; margin: 0 !important; }
+.analysis-area > .state-strip { grid-area: state; margin: 0 !important; }
+.analysis-area > .support-metric-grid { grid-area: support; margin: 0; }
+.analysis-area > .motion-profile-plots { grid-area: motion; margin-top: 4px; }
+
+.analysis-area > .metric-grid {
+  grid-template-columns: 1fr;
+  align-self: stretch;
+  border: 0;
+  gap: 8px;
+  overflow: visible;
+  background: transparent;
+}
+
+.analysis-area > .metric-grid .metric-card {
+  min-height: 0;
+  padding: 13px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.metric-card > span { font-weight: 680; }
+.metric-card strong { font-size: 18px; }
+.metric-emphasis {
+  background: var(--panel) !important;
+  box-shadow: inset 3px 0 0 var(--semantic-dynamic), 0 0 0 1px var(--line) !important;
+}
+.metric-emphasis > span,
+.metric-emphasis small { color: var(--muted) !important; }
+.metric-emphasis strong { color: var(--ink) !important; }
+
+.analysis-area > .state-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-self: start;
+  border: 0;
+  gap: 7px;
+  background: transparent;
+}
+
+.analysis-area > .state-strip > div {
+  min-height: 58px;
+  padding: 10px 11px;
+  border: 0 !important;
+  border-radius: 9px;
+  background: #e9ebe6;
+}
+
+.support-metric-grid {
+  border: 0;
+  gap: 8px;
+  overflow: visible;
+  background: transparent;
+}
+
+.support-metric-grid article {
+  border: 0 !important;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--semantic-static) 80%, transparent), 0 0 0 1px var(--line);
+}
+
+.control-panel {
+  order: 2 !important;
+  position: static !important;
+  width: auto !important;
+  min-height: 0 !important;
+  margin: 18px clamp(18px, 2.5vw, 40px) 0 !important;
+  padding: 22px clamp(18px, 2.4vw, 32px) 26px !important;
+  border: 0 !important;
+  border-radius: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 28px;
+  align-items: start;
+  background: #10222c;
+  box-shadow: 0 18px 50px rgba(8, 23, 31, 0.13);
+}
+
+#inputs > .panel-heading,
+#inputs > .mechanism-summary { grid-column: 1 / -1; }
+#inputs > .control-section { margin-top: 16px; padding: 16px; border: 0; border-radius: 11px; background: rgba(255, 255, 255, 0.025); }
+#inputs > .control-section:nth-of-type(1) { grid-column: 1; }
+#inputs > .control-section:nth-of-type(2) { grid-column: 2; }
+#inputs > .control-section:nth-of-type(3) { grid-column: 1; }
+#inputs > .control-section:nth-of-type(4) { grid-column: 2; }
+#inputs > .control-section:nth-of-type(5) { grid-column: 2; }
+
+#inputs .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+#inputs .section-label > span,
+#inputs .control-hint { font-size: 10px; line-height: 1.45; }
+
+.ux-advanced-toggle {
+  min-height: 34px;
+  border: 1px solid #3a5662;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #17313c;
+  color: #c1d3d6;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ux-advanced-toggle:hover,
+.ux-advanced-toggle[aria-expanded="true"] {
+  border-color: var(--semantic-current);
+  color: white;
+}
+
+html:not(.ux-advanced-open) #inputs > .control-section:nth-of-type(3) .field:nth-child(n + 2),
+html:not(.ux-advanced-open) #inputs > .control-section:nth-of-type(4),
+html:not(.ux-advanced-open) #inputs > .control-section:nth-of-type(5) {
+  display: none !important;
+}
+
+html:not(.ux-advanced-open) #inputs > .control-section:nth-of-type(3) .section-label > span {
+  font-size: 0;
+}
+
+html:not(.ux-advanced-open) #inputs > .control-section:nth-of-type(3) .section-label > span::after {
+  content: "core load";
+  font-size: 10px;
+}
+
+.mechanism-summary {
+  margin-top: 18px;
+  border-top: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0b1921;
+}
+
+.mechanism-summary > div { border-color: #213945; }
+
+/* Compact, discoverable simulator chrome. */
+.camera-toolbar {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 5px !important;
+}
+
+.camera-fit,
+.camera-actions { flex-wrap: nowrap !important; }
+.camera-fit button { font-size: 0 !important; }
+.camera-fit button::after { font-size: 9px; }
+.camera-fit button:nth-child(1)::after { content: "Mechanism"; }
+.camera-fit button:nth-child(2)::after { content: "Motion"; }
+.camera-fit button:nth-child(3)::after { content: "Path"; }
+
+.link-label {
+  font-size: 14px !important;
+  stroke-width: 4 !important;
+  opacity: 0.92;
+}
+
+/* Make the time rail unmistakably a cycle-time scrubber while retaining angle context. */
+.time-rail-range { position: relative; }
+.time-rail-range::after {
+  content: "θmax";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  color: #6f8d97;
+  font: 650 7px/1 var(--font-geist-mono), monospace;
+  pointer-events: none;
+}
+
+/* Results behave like a screening report: issues first, routine passes collapsible. */
+.results-area {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto !important;
+  padding: 24px clamp(18px, 2.5vw, 40px) 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.results-heading { order: -3; }
+.ux-design-status { order: -2; }
+
+.ux-design-status {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 13px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.8fr) auto;
+  align-items: center;
+  gap: 14px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.ux-design-status.has-issues { box-shadow: inset 4px 0 0 var(--semantic-warning), 0 0 0 1px var(--line); }
+.ux-design-status.all-good { box-shadow: inset 4px 0 0 var(--semantic-pass), 0 0 0 1px var(--line); }
+
+.ux-status-copy { display: grid; gap: 5px; }
+.ux-status-copy > span {
+  color: var(--muted);
+  font: 700 9px/1 var(--font-geist-mono), monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.ux-status-copy strong { font-size: 17px; letter-spacing: -0.02em; }
+.ux-status-copy small { color: var(--muted); font-size: 10px; line-height: 1.45; }
+
+.ux-issue-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.ux-issue {
+  min-width: 150px;
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 8px;
+  background: #fff5ed;
+  color: var(--ink);
+  text-align: left;
+}
+.ux-issue.critical { background: #fff0ed; }
+.ux-issue > span {
+  grid-row: 1 / span 2;
+  align-self: center;
+  padding: 4px 5px;
+  border-radius: 5px;
+  background: var(--semantic-warning);
+  color: #38260c;
+  font: 800 8px/1 var(--font-geist-mono), monospace;
+  text-transform: uppercase;
+}
+.ux-issue.critical > span { background: var(--semantic-critical); color: white; }
+.ux-issue strong { font-size: 10px; }
+.ux-issue small { color: var(--muted); font: 550 8px/1.25 var(--font-geist-mono), monospace; }
+.ux-issue:hover { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--semantic-current) 55%, transparent); }
+
+.ux-passed-toggle {
+  min-height: 38px;
+  border: 1px solid #b7c5c2;
+  border-radius: 8px;
+  padding: 0 11px;
+  background: transparent;
+  color: #35535a;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.worst-case-grid .result-jump[data-ux-state="critical"] { order: -3; }
+.worst-case-grid .result-jump[data-ux-state="warning"] { order: -2; }
+html:not(.ux-show-passes) .worst-case-grid .result-jump[data-ux-state="pass"] { display: none; }
+
+/* Status colors are semantic, not decorative. */
+.result-state.good { color: #32764f; }
+.result-state.danger { color: #a83f36; }
+.load-warning { border-color: color-mix(in srgb, var(--semantic-critical) 35%, var(--line)); }
+
+/* Plot semantic tones and a genuinely expanded scientific view. */
+.plot-card[data-tone="current"] { --plot-tone: var(--semantic-current); }
+.plot-card[data-tone="dynamic"] { --plot-tone: var(--semantic-dynamic); }
+.plot-card[data-tone="static"] { --plot-tone: var(--semantic-static); }
+.plot-card[data-tone="geometry"] { --plot-tone: var(--lime); }
+.plot-card { --plot-tone: var(--semantic-current); }
+.plot-card .plot-line { stroke: var(--plot-tone) !important; }
+.plot-card .plot-readout i { background: var(--plot-tone); }
+.plot-expand-button { min-width: 66px; }
+.plot-modal-panel { width: min(95vw, 1500px) !important; max-height: 90vh !important; }
+.plot-modal-chart { max-height: calc(90vh - 58px) !important; }
+.plot-detail-hit { touch-action: none; }
+
+/* Utilization bars expose the rating boundary and visibly overflow when >100%. */
+.utilization-track {
+  position: relative;
+  overflow: visible;
+  margin-right: 20px;
+}
+.utilization-track::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  right: -1px;
+  top: -4px;
+  width: 2px;
+  height: 15px;
+  background: #6a7779;
+}
+.utilization-track::after {
+  content: "100%";
+  position: absolute;
+  right: -15px;
+  top: 11px;
+  color: var(--muted);
+  font: 600 7px/1 var(--font-geist-mono), monospace;
+}
+.utilization-track i.over {
+  width: 100% !important;
+  position: relative;
+}
+.utilization-track i.over::after {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 0;
+  width: 18px;
+  height: 100%;
+  background: repeating-linear-gradient(135deg, var(--semantic-critical) 0 4px, #ffaaa1 4px 7px);
+}
+
+/* Slightly calmer technical surface hierarchy. */
+.plot-card,
+.detail-card,
+.simulator-card { box-shadow: 0 12px 34px rgba(21, 38, 46, 0.055); }
+.assumption-strip { border: 0; background: #e7e9e4; }
+.section-wide-heading { margin-top: 24px; }
+
+@media (max-width: 1180px) {
+  .header-status { display: none; }
+  .analysis-area { grid-template-columns: minmax(0, 1.9fr) minmax(255px, 0.9fr); }
+  .ux-design-status { grid-template-columns: 1fr auto; }
+  .ux-issue-list { grid-column: 1 / -1; }
+}
+
+@media (max-width: 900px) {
+  .analysis-area {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "sim"
+      "metrics"
+      "state"
+      "support"
+      "motion";
+    padding-inline: 16px;
+  }
+
+  .analysis-area > .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analysis-area > .state-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .control-panel {
+    margin-inline: 16px !important;
+    grid-template-columns: 1fr;
+  }
+  #inputs > .panel-heading,
+  #inputs > .mechanism-summary,
+  #inputs > .control-section:nth-of-type(n) { grid-column: 1; }
+}
+
+@media (max-width: 720px) {
+  body { padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
+
+  .topbar {
+    position: relative;
+    z-index: 10;
+    min-height: 58px;
+    padding: 10px 12px;
+  }
+
+  .ux-section-nav {
+    position: fixed;
+    z-index: 80;
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-color: #29414c;
+    background: rgba(13, 27, 37, 0.96);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(14px);
+  }
+  .ux-section-nav a { min-height: 44px; color: #adc2c7; }
+  .ux-section-nav a:hover,
+  .ux-section-nav a:focus-visible { background: #17313c; color: white; }
+  .ux-section-nav a.active { background: #1a3540; color: white; box-shadow: inset 0 -2px 0 var(--semantic-current); }
+
+  #simulator,
+  #inputs,
+  #results { scroll-margin-top: 12px !important; }
+
+  .analysis-area { padding: 8px 8px 0; gap: 9px; }
+  .analysis-area > .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .analysis-area > .state-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analysis-area > .support-metric-grid { grid-template-columns: 1fr; }
+
+  .simulator-body { grid-template-columns: minmax(0, 1fr) 56px !important; }
+  .simulator-stage {
+    height: min(72svh, calc((100vw - 72px) * 1.28)) !important;
+    min-height: 330px !important;
+  }
+
+  .motion-rail { padding: 8px 4px 7px !important; gap: 5px !important; }
+  .rail-readout { gap: 3px; }
+  .rail-readout output { font-size: 9px !important; }
+  .rail-readout small { font-size: 7px !important; }
+  .time-rail-range::after { left: 0; font-size: 6px; }
+  .rail-nudges { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 3px !important; }
+  .rail-nudges button { min-height: 28px !important; font-size: 0 !important; padding: 0 !important; }
+  .rail-nudges button::after { font: 800 14px/1 var(--font-geist-mono), monospace; }
+  .rail-nudges button:first-child::after { content: "−"; }
+  .rail-nudges button:last-child::after { content: "+"; }
+  .motion-rail .simulator-play { min-height: 38px !important; font-size: 8px !important; }
+
+  .camera-toolbar { top: 5px !important; left: 5px !important; max-width: calc(100% - 10px) !important; }
+  .camera-toolbar button { min-height: 27px !important; padding-inline: 5px !important; }
+  .camera-actions button:nth-child(3) { display: none; }
+  .camera-actions button:nth-child(4) { font-size: 0 !important; }
+  .camera-actions button:nth-child(4)::after { content: "Aa"; font-size: 9px; }
+  .link-label { font-size: 17px !important; stroke-width: 6 !important; }
+
+  .control-panel { margin: 12px 8px 0 !important; padding: 15px 12px 18px !important; }
+  #inputs > .control-section { padding: 13px; }
+  #inputs .panel-heading { flex-wrap: wrap; }
+  .ux-advanced-toggle { order: 3; min-height: 32px; }
+  #inputs .section-label > span,
+  #inputs .control-hint,
+  .support-metric-grid small,
+  .plot-heading > div:first-child > span,
+  .detail-heading > div > span { font-size: 10px !important; }
+
+  .ux-design-status {
+    grid-template-columns: 1fr;
+    padding: 13px;
+    gap: 10px;
+  }
+  .ux-status-copy strong { font-size: 16px; }
+  .ux-issue-list { display: grid; grid-template-columns: 1fr; }
+  .ux-issue { width: 100%; }
+  .ux-passed-toggle { width: 100%; }
+
+  .results-area { padding: 18px 8px 28px; }
+  .worst-case-grid { grid-template-columns: 1fr !important; gap: 8px; border: 0; background: transparent; }
+  .result-jump { min-height: 0 !important; border: 0 !important; border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
+
+  .plot-heading { min-height: 54px; }
+  .plot-readout { padding: 7px 10px; gap: 5px 10px; }
+  .plot-readout span { font-size: 9px; }
+  .plot-modal-panel { width: 100% !important; height: 100svh; max-height: 100svh !important; }
+  .plot-modal-chart { max-height: none !important; }
+
+  .utilization-track { margin-right: 22px; }
+}
+
+@media (max-width: 420px) {
+  .analysis-area > .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric-card { min-height: 96px !important; padding: 11px !important; }
+  .metric-card > span { font-size: 9px; }
+  .metric-card strong { font-size: 16px; }
+  .camera-fit { max-width: none !important; }
+  .camera-fit button::after { font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ux-section-nav a,
+  .ux-issue { transition: none; }
+}
