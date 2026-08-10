@@ -1,4 +1,4 @@
-import { DEG, EPS, RAD, clamp } from "./linkage-core.mjs";
+import { DEG, EPS, RAD, clamp } from "./linkage-geometry.mjs";
 
 function integrateConstantJerk(state, jerk, dt) {
   return {
@@ -167,11 +167,19 @@ export function sampleMotionProfile(config, options = {}) {
   const sampleCount = Math.max(81, Math.floor(options.sampleCount ?? 401));
   const times = new Set();
   for (let index = 0; index < sampleCount; index += 1) times.add(info.duration * index / (sampleCount - 1));
-  times.add(0); times.add(info.halfDuration); times.add(info.duration);
+  times.add(0);
+  times.add(info.halfDuration);
+  times.add(info.duration);
   if (info.type === "s-curve" && info.plan) {
-    for (const boundary of info.plan.boundaries) { times.add(boundary); times.add(info.halfDuration + boundary); }
+    for (const boundary of info.plan.boundaries) {
+      times.add(boundary);
+      times.add(info.halfDuration + boundary);
+    }
   }
-  return [...times].filter((time) => time >= -EPS && time <= info.duration + EPS).sort((a, b) => a - b).map((time) => motionStateAtTime(config, clamp(time, 0, info.duration)));
+  return [...times]
+    .filter((time) => time >= -EPS && time <= info.duration + EPS)
+    .sort((a, b) => a - b)
+    .map((time) => motionStateAtTime(config, clamp(time, 0, info.duration)));
 }
 
 export function timeAtAngle(config, angleDegrees) {
@@ -179,10 +187,12 @@ export function timeAtAngle(config, angleDegrees) {
   const target = clamp(angleDegrees, config.minAngle, config.maxAngle);
   if (Math.abs(target - config.minAngle) < 1e-10) return 0;
   if (Math.abs(target - config.maxAngle) < 1e-10) return info.halfDuration;
-  let low = 0, high = info.halfDuration;
+  let low = 0;
+  let high = info.halfDuration;
   for (let iteration = 0; iteration < 64; iteration += 1) {
     const mid = (low + high) / 2;
-    if (motionStateAtTime(config, mid).angle < target) low = mid; else high = mid;
+    if (motionStateAtTime(config, mid).angle < target) low = mid;
+    else high = mid;
   }
   return (low + high) / 2;
 }
