@@ -176,10 +176,16 @@ export function sampleMotionProfile(config, options = {}) {
       times.add(info.halfDuration + boundary);
     }
   }
-  return [...times]
+  const sorted = [...times]
     .filter((time) => time >= -EPS && time <= info.duration + EPS)
-    .sort((a, b) => a - b)
-    .map((time) => motionStateAtTime(config, clamp(time, 0, info.duration)));
+    .sort((a, b) => a - b);
+  const unique = [];
+  const tolerance = Math.max(1e-12, info.duration * 1e-12);
+  for (const time of sorted) {
+    const clamped = clamp(time, 0, info.duration);
+    if (!unique.length || Math.abs(clamped - unique.at(-1)) > tolerance) unique.push(clamped);
+  }
+  return unique.map((time) => motionStateAtTime(config, time));
 }
 
 export function timeAtAngle(config, angleDegrees) {
