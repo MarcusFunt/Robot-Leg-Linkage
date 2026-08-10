@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 type SectionId = "simulator" | "inputs" | "results";
+type AnalysisView = "status" | "dynamic" | "static" | "actuator";
 type CheckState = "critical" | "warning" | "pass" | "neutral";
 type CheckSummary = {
   index: number;
@@ -44,12 +45,15 @@ export default function UXEnhancements() {
   const [activeSection, setActiveSection] = useState<SectionId>("simulator");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [showPassed, setShowPassed] = useState(false);
+  const [analysisView, setAnalysisView] = useState<AnalysisView>("status");
+  const [profileInfoTarget, setProfileInfoTarget] = useState<HTMLElement | null>(null);
   const [checks, setChecks] = useState<CheckSummary[]>([]);
 
   useEffect(() => {
     setNavTarget(document.querySelector<HTMLElement>(".topbar"));
     setInputTarget(document.querySelector<HTMLElement>("#inputs .panel-heading"));
     setResultsTarget(document.querySelector<HTMLElement>("#results"));
+    setProfileInfoTarget(document.querySelector<HTMLElement>(".motion-profile-section"));
 
     const saved = window.localStorage.getItem(STORAGE_KEY) === "1";
     setAdvancedOpen(saved);
@@ -78,6 +82,26 @@ export default function UXEnhancements() {
   useEffect(() => {
     document.documentElement.classList.toggle("ux-show-passes", showPassed);
   }, [showPassed]);
+  useEffect(() => {
+    document.documentElement.dataset.analysisView = analysisView;
+    const results = document.getElementById("results");
+    if (!results) return;
+    const headings = Array.from(results.querySelectorAll<HTMLElement>(".section-wide-heading"));
+    for (const heading of headings) {
+      const title = heading.querySelector("h2")?.textContent?.toLowerCase() ?? "";
+      const group = title.includes("dynamic") ? "dynamic" : title.includes("static") ? "static" : null;
+      if (group) {
+        heading.dataset.analysisGroup = group;
+        const next = heading.nextElementSibling as HTMLElement | null;
+        if (next?.classList.contains("plot-grid")) next.dataset.analysisGroup = group;
+      }
+    }
+    const detail = results.querySelector<HTMLElement>(".load-detail-grid");
+    if (detail) detail.dataset.analysisGroup = "actuator";
+    const assumptions = results.querySelector<HTMLElement>(".assumption-strip");
+    if (assumptions) assumptions.dataset.analysisGroup = "actuator";
+  }, [analysisView, resultsTarget]);
+
 
   useEffect(() => {
     if (!resultsTarget) return;
@@ -103,6 +127,13 @@ export default function UXEnhancements() {
 
   const issues = checks.filter((check) => check.state === "critical" || check.state === "warning");
   const passed = checks.filter((check) => check.state === "pass");
+  useEffect(() => {
+    if (!issues.length || analysisView !== "status") return;
+    const label = issues[0].label.toLowerCase();
+    if (label.includes("transmission") || label.includes("minimum μ") || label.includes("geometry") || label.includes("static")) setAnalysisView("static");
+    else if (label.includes("motor") || label.includes("shear") || label.includes("bearing")) setAnalysisView("actuator");
+    else setAnalysisView("dynamic");
+  }, [checks, analysisView]);
 
   const focusCheck = (index: number) => {
     const button = document.querySelector<HTMLButtonElement>(`#results .result-jump[data-ux-index="${index}"]`);
@@ -139,6 +170,16 @@ export default function UXEnhancements() {
           )
         : null}
 
+      {profileInfoTarget
+        ? createPortal(
+            <details className="ux-profile-info">
+              <summary>About this motion profile</summary>
+              <p>S-curve uses the minimum-time symmetric jerk-limited trajectory within the configured limits. Sinusoidal motion starts at the minimum angle, reaches the maximum at half-cycle, then returns.</p>
+            </details>,
+            profileInfoTarget,
+          )
+        : null}
+
       {resultsTarget
         ? createPortal(
             <section className={`ux-design-status ${issues.length ? "has-issues" : "all-good"}`} aria-live="polite">
@@ -165,6 +206,11 @@ export default function UXEnhancements() {
                   {showPassed ? "Hide passed checks" : `Show ${passed.length} passed check${passed.length === 1 ? "" : "s"}`}
                 </button>
               ) : null}
+              <nav className="ux-analysis-nav" aria-label="Analysis sections">
+                {([['status','Status'],['dynamic','Dynamic'],['static','Static'],['actuator','Actuator']] as Array<[AnalysisView,string]>).map(([id,label]) => (
+                  <button key={id} type="button" className={analysisView===id?'active':''} onClick={() => setAnalysisView(id)}>{label}</button>
+                ))}
+              </nav>
             </section>,
             resultsTarget,
           )

@@ -43,7 +43,7 @@ const CORE_SECTIONS = [
   ["state-strip", ".state-strip"],
   ["profile-derived", ".profile-derived"],
   ["support-metrics", ".support-metric-grid"],
-  ["worst-case-results", ".worst-case-grid"],
+  ["design-status", ".ux-design-status"],
   ["results", ".results-area"],
   ["actuator-and-reactions", ".load-detail-grid"],
   ["assumptions", ".assumption-strip"],
@@ -237,6 +237,31 @@ async function selectProfile(page, profile) {
   throw new Error(`Could not find motion profile button: ${profile.label}`);
 }
 
+async function setNumericField(page, label, value) {
+  const field = page.locator('.field').filter({ hasText: label }).first();
+  if ((await field.count()) === 0) throw new Error(`Field not found: ${label}`);
+  const input = field.locator('input[type="number"]').first();
+  await input.fill(String(value));
+  await input.press('Enter');
+  await stabilize(page);
+}
+
+async function captureRiskStates(page, directory, metadata) {
+  const scenarios = [
+    { name: 'one-warning-geometry', values: [['Vertical support at T', 0], ['Maximum angle', 306]] },
+    { name: 'multiple-warnings', values: [['Allowable bearing', 1], ['Pin diameter', 1], ['Motor continuous', 0.02], ['Motor peak', 0.05]] },
+    { name: 'actuator-overload', values: [['Motor continuous', 0.02], ['Motor peak', 0.05]] },
+    { name: 'invalid-motion', values: [['Input crank', 180]] },
+  ];
+  for (const scenario of scenarios) {
+    await gotoBaseline(page);
+    const advanced = page.getByRole('button', { name: /advanced inputs/i }).first();
+    if ((await advanced.count()) > 0 && !(await advanced.getAttribute('aria-expanded') === 'true')) await advanced.click();
+    for (const [label, value] of scenario.values) await setNumericField(page, label, value);
+    await captureElement(page.locator('.ux-design-status'), path.join(directory, 'risk-states', `${scenario.name}.png`), { ...metadata, kind: 'risk-state', scenario: scenario.name });
+  }
+}
+
 async function setTimeFraction(page, fraction) {
   const slider = page.locator('.time-rail input[type="range"], .motion-rail input[type="range"]').first();
   if ((await slider.count()) === 0) return;
@@ -356,6 +381,7 @@ function shouldCaptureFullscreen(target) {
 }
 
 async function capturePlots(page, directory, metadata, captureFullscreen) {
+  await page.evaluate(() => document.documentElement.removeAttribute("data-analysis-view"));
   const cards = page.locator(".plot-card");
   const count = await cards.count();
 
@@ -434,6 +460,9 @@ async function captureTarget(browser, target) {
     console.log(`Capturing ${target.name} / ${profile.id}`);
     await capturePage(page, path.join(directory, "full-page.png"), { ...metadata, kind: "full-page" });
     await captureCoreSections(page, directory, metadata);
+    if (profile.id === "s-curve") await captureRiskStates(page, directory, metadata);
+    await gotoBaseline(page);
+    await selectProfile(page, profile);
     await captureControlTabs(page, directory, metadata);
     await ensureProfileSelectorVisible(page);
     await selectProfile(page, profile);
