@@ -26,6 +26,9 @@ jobs:
           cache: npm
           cache-dependency-path: robot-leg-linkage-lab-source-v5/robot-leg-linkage-lab/package-lock.json
 
+      - name: Normalize script permissions
+        run: chmod +x scripts/*.sh
+
       - name: Install locked dependencies
         run: npm run install:ci
 
