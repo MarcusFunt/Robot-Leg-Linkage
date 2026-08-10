@@ -40,3 +40,7 @@ next-env.d.ts
 /.sites-runtime/
 /outputs/
 /work/
+
+# visual capture tooling
+/screenshots/
+/.ui-screenshot-runtime/
