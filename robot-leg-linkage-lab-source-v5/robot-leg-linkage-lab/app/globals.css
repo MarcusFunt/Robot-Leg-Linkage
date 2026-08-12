@@ -1789,6 +1789,28 @@ input[type="range"] {
   background: #0b1821;
 }
 
+.mobile-motion-controls {
+  display: none;
+}
+
+.stage-blocker {
+  position: absolute;
+  inset: auto 16px 16px;
+  z-index: 2;
+  max-width: 460px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--danger) 72%, white);
+  border-radius: 8px;
+  background: rgba(38, 17, 18, 0.94);
+  color: white;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+}
+
+.stage-blocker strong { font-size: 13px; }
+.stage-blocker span { color: #ffd7d1; font-size: 12px; line-height: 1.35; }
+
 .simulator-stage {
   height: clamp(520px, calc(100svh - 176px), 740px);
   min-height: 0;
@@ -2017,72 +2039,69 @@ input[type="range"] {
   }
 
   .simulator-body {
-    grid-template-columns: minmax(0, 1fr) 64px;
+    display: block;
   }
 
   .simulator-stage {
-    height: min(68svh, calc((100vw - 80px) * 1.226));
-    min-height: 300px;
+    height: min(62svh, calc((100vw - 16px) * 0.95));
+    min-height: 270px;
   }
 
   .stage-coordinate {
     display: none;
   }
 
+  .camera-toolbar,
   .motion-rail {
-    padding: 9px 6px 8px;
-    grid-template-rows: auto minmax(120px, 1fr) auto auto;
-    gap: 7px;
+    display: none;
   }
 
-  .rail-readout output {
-    font-size: 10px;
+  .mobile-motion-controls {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid #29414c;
+    background: #0e202a;
   }
 
-  .rail-range {
-    gap: 5px;
+  .mobile-view-controls,
+  .mobile-play-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
 
-  .motion-rail input[type="range"] {
-    min-height: 70px;
-  }
-
-  .rail-limit {
-    gap: 3px;
-  }
-
-  .rail-limit-input {
-    height: 31px;
-  }
-
-  .rail-limit-input input {
-    padding-inline: 2px 11px;
-    font-size: 10px;
-  }
-
-  .rail-limit-input small {
-    right: 3px;
-    font-size: 8px;
-  }
-
-  .rail-nudges {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-
-  .rail-nudges button {
-    min-height: 30px;
-  }
-
-  .motion-rail .simulator-play {
+  .mobile-motion-controls button {
     min-height: 44px;
-    flex-direction: column;
-    gap: 3px;
-    font-size: 9px;
+    border: 1px solid #35505c;
+    border-radius: 7px;
+    background: #132a35;
+    color: #d9e8e9;
+    font-size: 12px;
   }
 
-  .motion-rail .simulator-play span {
-    font-size: 10px;
+  .mobile-motion-controls button.active {
+    border-color: var(--cyan);
+    background: #1a3b45;
+    color: white;
+  }
+
+  .mobile-motion-controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .mobile-time-scrubber {
+    display: grid;
+    gap: 6px;
+    color: #d9e8e9;
+    font: 600 11px/1.2 var(--font-geist-mono), monospace;
+  }
+
+  .mobile-time-scrubber input {
+    width: 100%;
+    min-height: 32px;
+    accent-color: var(--cyan);
   }
 
   .control-panel {

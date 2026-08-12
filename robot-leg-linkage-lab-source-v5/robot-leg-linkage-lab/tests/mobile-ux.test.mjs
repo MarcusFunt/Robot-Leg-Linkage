@@ -1,1 +1,35 @@
-import assert from"node:assert/strict";import{readFile}from"node:fs/promises";import test from"node:test";const root=new URL("../",import.meta.url),source=path=>readFile(new URL(path,root),"utf8");test("motion-profile UX keeps traceability, mobile navigation, camera fits and static support",async()=>{const[page,ui,mobileCss,motionCss]=await Promise.all([source("app/page.tsx"),source("app/linkage-ui.tsx"),source("app/mobile-enhancements.css"),source("app/motion-profile.css")]);assert.match(page,/Fit mechanism/);assert.match(page,/Fit motion window/);assert.match(page,/Fit full path/);assert.match(page,/Peak loaded joint reaction/);assert.match(page,/motionProfile==="s-curve"/);assert.match(page,/motionProfile==="sinusoidal"/);assert.match(page,/Vertical support \/ input torque/);assert.match(page,/Normalized vertical mechanical advantage/);assert.match(page,/focusTime/);assert.match(page,/focusAngle/);assert.match(page,/nav-badge/);assert.match(page,/reaction-mobile/);assert.match(page,/link-label/);assert.doesNotMatch(page,/Input speed/);assert.doesNotMatch(page,/Input acceleration/);assert.match(ui,/plot-modal/);assert.match(ui,/compact&&!detail\?\[0,.5,1\]/);assert.match(mobileCss,/display:\s*grid\s*!important/);assert.match(motionCss,/motion-profile-selector/);assert.match(motionCss,/support-metric-grid/)});
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const root = new URL("../", import.meta.url);
+const source = (path) => readFile(new URL(path, root), "utf8");
+
+test("motion-profile UX keeps traceability, mobile navigation, camera fits and static support", async () => {
+  const [page, ui, mobileCss, motionCss] = await Promise.all([
+    source("app/page.tsx"),
+    source("app/linkage-ui.tsx"),
+    source("app/mobile-enhancements.css"),
+    source("app/motion-profile.css"),
+  ]);
+  assert.match(page, /Fit mechanism/);
+  assert.match(page, /Fit motion window/);
+  assert.match(page, /Fit full path/);
+  assert.match(page, /Peak loaded joint reaction/);
+  assert.match(page, /motionProfile\s*===\s*"s-curve"/);
+  assert.match(page, /motionProfile\s*===\s*"sinusoidal"/);
+  assert.match(page, /Vertical support \/ input torque/);
+  assert.match(page, /Normalized vertical mechanical advantage/);
+  assert.match(page, /focusTime/);
+  assert.match(page, /focusAngle/);
+  assert.match(page, /nav-badge/);
+  assert.match(page, /reaction-mobile/);
+  assert.match(page, /link-label/);
+  assert.doesNotMatch(page, /Input speed/);
+  assert.doesNotMatch(page, /Input acceleration/);
+  assert.match(ui, /plot-modal/);
+  assert.match(ui, /compact\s*&&\s*!detail\s*\?\s*\[0, 0\.5, 1\]/);
+  assert.match(mobileCss, /display:\s*grid\s*!important/);
+  assert.match(motionCss, /motion-profile-selector/);
+  assert.match(motionCss, /support-metric-grid/);
+});
