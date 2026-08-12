@@ -342,10 +342,10 @@ export default function Home() {
     },
     reactions = current.total
       ? ([
-          ["O₂", "ground → crank", current.total.O2Reaction],
-          ["A", "coupler → crank", current.total.AReaction],
-          ["B", "rocker → coupler", current.total.BReaction],
-          ["O₄", "ground → rocker", current.total.O4Reaction],
+          ["O₄", "ground → B-04 input crank", current.total.O4Reaction],
+          ["B", "leg → B-04 input crank", current.total.BReaction],
+          ["A", "A-02 rocker → leg", current.total.AReaction],
+          ["O₂", "ground → A-02 rocker", current.total.O2Reaction],
         ] as Array<[string, string, Vec]>)
       : [],
     nearestMotionSample = (
@@ -378,7 +378,7 @@ export default function Home() {
     geometryUnsafe = (summary?.minTransmission ?? 90) < 20,
     geometryBlocker = motionAnalysis?.status === "invalid motion path",
     geometryBlockerDetail = motionAnalysis?.reachability
-      ? `Crank-to-ground distance ${motionAnalysis.reachability.minDistance.toFixed(1)}–${motionAnalysis.reachability.maxDistance.toFixed(1)} mm must stay within ${motionAnalysis.reachability.lowerLimit.toFixed(1)}–${motionAnalysis.reachability.upperLimit.toFixed(1)} mm.`
+      ? `B-04-to-O₂ distance ${motionAnalysis.reachability.minDistance.toFixed(1)}–${motionAnalysis.reachability.maxDistance.toFixed(1)} mm must stay within ${motionAnalysis.reachability.lowerLimit.toFixed(1)}–${motionAnalysis.reachability.upperLimit.toFixed(1)} mm.`
       : "Adjust the linkage geometry or requested angle window.",
     analysisWarning =
       !valid ||
@@ -390,9 +390,9 @@ export default function Home() {
       shearUnsafe ||
       bearingUnsafe ||
       geometryUnsafe,
-    crankMid = mapped ? midpoint(mapped.O2, mapped.A) : null,
+    a02Mid = mapped ? midpoint(mapped.O2, mapped.A) : null,
     legMid = mapped ? midpoint(mapped.A, mapped.T) : null,
-    rockerMid = mapped ? midpoint(mapped.O4, mapped.B) : null,
+    b04Mid = mapped ? midpoint(mapped.O4, mapped.B) : null,
     groups = fieldGroups(config),
     renderGroup = (
       group: ReturnType<typeof fieldGroups>[number],
@@ -423,7 +423,7 @@ export default function Home() {
     ),
     currentVelocityDegS = motion.omega * DEG,
     currentAccelerationDegS2 = motion.alpha * DEG,
-    outputVelocityDegS = kin ? kin.omega4Ratio * motion.omega * DEG : null,
+    outputVelocityDegS = kin ? kin.omega2Ratio * motion.omega * DEG : null,
     timeStep = Math.max(0.001, profile.duration / 100);
   return (
     <main className="site-shell">
@@ -586,11 +586,11 @@ export default function Home() {
                 <strong>{profile.duration.toFixed(3)} s</strong>
               </div>
               <div>
-                <span>Peak ω₂</span>
+                <span>Peak ω₄</span>
                 <strong>{profile.peakVelocityDegS.toFixed(1)} °/s</strong>
               </div>
               <div>
-                <span>Peak α₂</span>
+                <span>Peak α₄</span>
                 <strong>{profile.peakAccelerationDegS2.toFixed(0)} °/s²</strong>
               </div>
               <div>
@@ -733,7 +733,7 @@ export default function Home() {
                         y1={mapped.O2.y}
                         x2={mapped.A.x}
                         y2={mapped.A.y}
-                        className="link crank-link"
+                        className="link rocker-link"
                       />
                       <line
                         x1={mapped.A.x}
@@ -747,7 +747,7 @@ export default function Home() {
                         y1={mapped.O4.y}
                         x2={mapped.B.x}
                         y2={mapped.B.y}
-                        className="link rocker-link"
+                        className="link crank-link"
                       />
                       {[
                         [mapped.O2, "fixed-joint"],
@@ -786,16 +786,16 @@ export default function Home() {
                       ) : null}
                       {(!compact || mobileLabelsVisible) &&
                       labelLayers.links &&
-                      crankMid &&
+                      a02Mid &&
                       legMid &&
-                      rockerMid ? (
+                      b04Mid ? (
                         <g>
                           <text
-                            x={crankMid.x}
-                            y={crankMid.y - 14}
-                            className="link-label crank-label"
+                            x={a02Mid.x}
+                            y={a02Mid.y - 14}
+                            className="link-label rocker-label"
                           >
-                            crank
+                            A-02 · rocker
                           </text>
                           <text
                             x={legMid.x + 18}
@@ -805,11 +805,11 @@ export default function Home() {
                             leg
                           </text>
                           <text
-                            x={rockerMid.x - 18}
-                            y={rockerMid.y - 18}
-                            className="link-label rocker-label"
+                            x={b04Mid.x - 18}
+                            y={b04Mid.y - 18}
+                            className="link-label crank-label"
                           >
-                            rocker
+                            B-04 · input crank
                           </text>
                         </g>
                       ) : null}
@@ -924,7 +924,7 @@ export default function Home() {
                   ) : null}
                 </div> : null}
                 <div className="stage-coordinate">
-                  t {motion.time.toFixed(3)} s · θ₂ {motion.angle.toFixed(1)}°
+                  t {motion.time.toFixed(3)} s · θ₄ {motion.angle.toFixed(1)}°
                 </div>
               </div>
               <div
@@ -1004,7 +1004,7 @@ export default function Home() {
                 <div className="rail-readout">
                   <span>t</span>
                   <output>{motion.time.toFixed(2)} s</output>
-                  <small>θ₂ {motion.angle.toFixed(1)}°</small>
+                  <small>θ₄ {motion.angle.toFixed(1)}°</small>
                   <small className="rail-direction">
                     {motion.time <= profile.duration / 2
                       ? "↑ increasing"
@@ -1116,21 +1116,21 @@ export default function Home() {
           </section>
           <section className="state-strip">
             <div>
-              <span>Output θ₄</span>
+              <span>A-02 rocker θ₂</span>
               <strong>
-                {pose ? `${wrapDegrees(pose.theta4 * DEG).toFixed(2)}°` : "—"}
+                {pose ? `${wrapDegrees(pose.theta2 * DEG).toFixed(2)}°` : "—"}
               </strong>
             </div>
             <div>
-              <span>Input ω₂</span>
+              <span>Input B-04 ω₄</span>
               <strong>{currentVelocityDegS.toFixed(1)} °/s</strong>
             </div>
             <div>
-              <span>Input α₂</span>
+              <span>Input B-04 α₄</span>
               <strong>{currentAccelerationDegS2.toFixed(0)} °/s²</strong>
             </div>
             <div>
-              <span>Output ω₄</span>
+              <span>A-02 rocker ω₂</span>
               <strong>
                 {outputVelocityDegS === null
                   ? "—"
@@ -1144,7 +1144,7 @@ export default function Home() {
               <strong>
                 {finiteText(currentSupport?.effectiveMomentArmMm, 2, " mm")}
               </strong>
-              <small>|∂yT / ∂θ₂|</small>
+              <small>|∂yT / ∂θ₄|</small>
             </article>
             <article>
               <span>Vertical support / input torque</span>
@@ -1190,7 +1190,7 @@ export default function Home() {
               </div>
               <div className="plot-grid profile-plot-grid">
                 <Plot
-                  title="Crank angle θ₂"
+                  title="B-04 input angle θ₄"
                   unit="degrees"
                   xUnit="s"
                   points={plotPoints(
@@ -1202,7 +1202,7 @@ export default function Home() {
                   onXChange={setTime}
                 />
                 <Plot
-                  title="Crank velocity ω₂"
+                  title="B-04 input velocity ω₄"
                   unit="degrees / second"
                   xUnit="s"
                   points={plotPoints(
@@ -1214,7 +1214,7 @@ export default function Home() {
                   onXChange={setTime}
                 />
                 <Plot
-                  title="Crank acceleration α₂"
+                  title="B-04 input acceleration α₄"
                   unit="degrees / second²"
                   xUnit="s"
                   points={plotPoints(
@@ -1439,7 +1439,7 @@ export default function Home() {
             <section className="plot-grid">
               <Plot
                 title="Loaded input torque"
-                unit="N·m at O₂"
+                unit="N·m at O₄"
                 xUnit="s"
                 points={plotPoints(
                   motionSamples,
@@ -1496,7 +1496,7 @@ export default function Home() {
               />
               <Plot
                 title="Effective vertical moment arm"
-                unit="mm · |∂yT / ∂θ₂|"
+                unit="mm · |∂yT / ∂θ₄|"
                 xUnit="°"
                 points={plotPoints(
                   staticSamples,
@@ -1508,7 +1508,7 @@ export default function Home() {
               />
               <Plot
                 title="Vertical support per input torque"
-                unit="N per N·m at O₂"
+                unit="N per N·m at O₄"
                 xUnit="°"
                 points={plotPoints(
                   staticSamples,
@@ -1523,7 +1523,7 @@ export default function Home() {
               />
               <Plot
                 title="Static holding torque"
-                unit="N·m at O₂ · support + gravity"
+                unit="N·m at O₄ · support + gravity"
                 xUnit="°"
                 points={plotPoints(
                   staticSamples,
@@ -1681,7 +1681,7 @@ export default function Home() {
                 </span>
               </div>
               <span className="angle-chip">
-                t {motion.time.toFixed(3)} s · θ₂ {motion.angle.toFixed(1)}°
+                t {motion.time.toFixed(3)} s · θ₄ {motion.angle.toFixed(1)}°
               </span>
             </div>
             <div className="reaction-mobile">
@@ -1777,7 +1777,7 @@ export default function Home() {
           <span>Preliminary planar model</span>
           <span>Rigid planar links</span>
           <span>Ideal revolute joints</span>
-          <span>Exact selected θ(t), ω(t), α(t)</span>
+          <span>Exact selected θ₄(t), ω₄(t), α₄(t)</span>
           <span>
             Dynamic case = configured vertical load + gravity + rigid-body
             inertia

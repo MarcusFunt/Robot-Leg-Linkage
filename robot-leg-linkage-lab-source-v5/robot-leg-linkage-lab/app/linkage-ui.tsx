@@ -72,7 +72,7 @@ export const DEFAULT_CONFIG: Config = {
   toolAlong: 120,
   toolOffset: 0,
   minAngle: 165,
-  maxAngle: 250,
+  maxAngle: 225,
   motionProfile: "s-curve",
   maxVelocity: 360,
   maxAcceleration: 1500,
@@ -190,11 +190,11 @@ function refinementLabel(peak: MotionPeak) {
 export function motionPeakMeta(peak: MotionPeak | undefined) {
   if (!peak || peak.angle === null || peak.time === null)
     return "no valid peak";
-  return `t ${peak.time.toFixed(4)} s · θ₂ ${peak.angle.toFixed(3)}°${refinementLabel(peak)}${peakResolution(peak.resolution, "time")}`;
+  return `t ${peak.time.toFixed(4)} s · θ₄ ${peak.angle.toFixed(3)}°${refinementLabel(peak)}${peakResolution(peak.resolution, "time")}`;
 }
 export function anglePeakMeta(peak: MotionPeak | undefined) {
   if (!peak || peak.angle === null) return "no valid point";
-  return `θ₂ ${peak.angle.toFixed(3)}°${refinementLabel(peak)}${peakResolution(peak.resolution, "angle")}`;
+  return `θ₄ ${peak.angle.toFixed(3)}°${refinementLabel(peak)}${peakResolution(peak.resolution, "angle")}`;
 }
 export function safetyText(
   _summary: AnalysisSummary | null,
@@ -554,9 +554,9 @@ export function fieldGroups(config: Config): Group[] {
       fields: [
         { key: "groundX", label: "Ground Δx", unit: "mm" },
         { key: "groundY", label: "Ground Δy", unit: "mm" },
-        { key: "crank", label: "Input crank", unit: "mm", min: 0.1 },
+        { key: "crank", label: "Rocker (A-02)", unit: "mm", min: 0.1 },
         { key: "coupler", label: "Coupler A–B", unit: "mm", min: 0.1 },
-        { key: "rocker", label: "Output rocker", unit: "mm", min: 0.1 },
+        { key: "rocker", label: "Input crank (B-04)", unit: "mm", min: 0.1 },
         { key: "toolAlong", label: "Tool along A–B", unit: "mm" },
         { key: "toolOffset", label: "Tool offset", unit: "mm" },
       ],
@@ -580,7 +580,7 @@ export function fieldGroups(config: Config): Group[] {
       fields: [
         {
           key: "crankMass",
-          label: "Crank mass",
+          label: "Rocker (A-02) mass",
           unit: "kg",
           min: 0,
           step: 0.01,
@@ -594,7 +594,7 @@ export function fieldGroups(config: Config): Group[] {
         },
         {
           key: "rockerMass",
-          label: "Rocker mass",
+          label: "Input crank (B-04) mass",
           unit: "kg",
           min: 0,
           step: 0.01,

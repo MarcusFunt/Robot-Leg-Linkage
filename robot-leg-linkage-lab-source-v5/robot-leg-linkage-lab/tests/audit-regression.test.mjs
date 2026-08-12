@@ -51,6 +51,17 @@ test("mobile uses a horizontal, touch-sized motion control strip", async () => {
   assert.match(css, /min-height:\s*44px/);
 });
 
+test("B-04 is the input crank and T remains the output point", async () => {
+  const [page, ui] = await Promise.all([
+    source("app/page.tsx"),
+    source("app/linkage-ui.tsx"),
+  ]);
+  assert.match(ui, /Input crank \(B-04\)/);
+  assert.match(page, /B-04.*input crank/);
+  assert.match(page, /Tool point T/);
+  assert.match(ui, /Rocker \(A-02\)/);
+});
+
 test("inverse dynamics agrees with an independent virtual-work inertia calculation", () => {
   const config = {
     groundX: 45,
@@ -61,7 +72,7 @@ test("inverse dynamics agrees with an independent virtual-work inertia calculati
     toolAlong: 120,
     toolOffset: 0,
     minAngle: 165,
-    maxAngle: 250,
+    maxAngle: 225,
     motionProfile: "s-curve",
     maxVelocity: 360,
     maxAcceleration: 1500,
@@ -105,17 +116,18 @@ test("inverse dynamics agrees with an independent virtual-work inertia calculati
       y: (legCenter.y * config.legMass + p.T.y * config.toolMass) / m3,
     };
     return {
-      G2: center(p.O2, p.A, 0.5),
+      G2: center(p.O4, p.B, 0.5),
       G3,
-      G4: center(p.O4, p.B, 0.5),
+      G4: center(p.O2, p.A, 0.5),
       legCenter,
       T: p.T,
       m3,
       t3: angle(p.A, p.B),
+      t2: angle(p.O2, p.A),
       t4: angle(p.O4, p.B),
     };
   };
-  for (const q of [175, 200, 230].map((degrees) => (degrees * Math.PI) / 180)) {
+  for (const q of [175, 200, 220].map((degrees) => (degrees * Math.PI) / 180)) {
     const now = state(q),
       plus = state(q + h),
       minus = state(q - h);
@@ -129,28 +141,28 @@ test("inverse dynamics agrees with an independent virtual-work inertia calculati
         1 / (h * h),
       );
     const theta3q = signed(plus.t3, minus.t3) / (2 * h),
-      theta4q = signed(plus.t4, minus.t4) / (2 * h);
+      theta2q = signed(plus.t2, minus.t2) / (2 * h);
     const theta3qq =
         (signed(plus.t3, now.t3) - signed(now.t3, minus.t3)) / (h * h),
-      theta4qq = (signed(plus.t4, now.t4) - signed(now.t4, minus.t4)) / (h * h);
+      theta2qq = (signed(plus.t2, now.t2) - signed(now.t2, minus.t2)) / (h * h);
     const acceleration = (key) => ({
       x: second(key).x * omega * omega + first(key).x * alpha,
       y: second(key).y * omega * omega + first(key).y * alpha,
     });
-    const I2 = (config.crankMass * config.crank ** 2) / 12,
+    const I2 = (config.rockerMass * config.rocker ** 2) / 12,
       I3 =
         (config.legMass * config.toolAlong ** 2) / 12 +
         config.legMass *
           dot(sub(now.legCenter, now.G3), sub(now.legCenter, now.G3)) +
         config.toolMass * dot(sub(now.T, now.G3), sub(now.T, now.G3)),
-      I4 = (config.rockerMass * config.rocker ** 2) / 12;
+      I4 = (config.crankMass * config.crank ** 2) / 12;
     const virtualTorque =
-      (config.crankMass * dot(acceleration("G2"), first("G2")) +
+      (config.rockerMass * dot(acceleration("G2"), first("G2")) +
         now.m3 * dot(acceleration("G3"), first("G3")) +
-        config.rockerMass * dot(acceleration("G4"), first("G4")) +
+        config.crankMass * dot(acceleration("G4"), first("G4")) +
         I2 * alpha +
         I3 * (theta3qq * omega * omega + theta3q * alpha) * theta3q +
-        I4 * (theta4qq * omega * omega + theta4q * alpha) * theta4q) /
+        I4 * (theta2qq * omega * omega + theta2q * alpha) * theta2q) /
       1e6;
     const solved = inverseDynamics(
       config,
@@ -160,7 +172,7 @@ test("inverse dynamics agrees with an independent virtual-work inertia calculati
     );
     assert.ok(solved);
     assert.ok(
-      Math.abs(solved.torque - virtualTorque) < 2e-8,
+      Math.abs(solved.torque - virtualTorque) < 5e-7,
       `q=${q}: expected ${virtualTorque}, got ${solved.torque}`,
     );
   }

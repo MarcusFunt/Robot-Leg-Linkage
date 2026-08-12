@@ -7,7 +7,7 @@ import {
 
 const config = {
   groundX: 45, groundY: -40, crank: 40, coupler: 45, rocker: 60,
-  toolAlong: 120, toolOffset: 0, minAngle: 165, maxAngle: 250,
+  toolAlong: 120, toolOffset: 0, minAngle: 165, maxAngle: 225,
   motionProfile: "s-curve", maxVelocity: 360, maxAcceleration: 1500,
   maxJerk: 10000, cycleTime: 2, branch: -1, supportForce: 100,
   gravity: true, crankMass: 0.12, legMass: 0.28, rockerMass: 0.15,
