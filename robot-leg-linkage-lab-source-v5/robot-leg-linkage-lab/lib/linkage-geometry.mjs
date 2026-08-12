@@ -27,26 +27,28 @@ export function solvePose(config, angleDegrees = config.minAngle ?? 0) {
   if (![groundX, groundY, crank, coupler, rocker, toolAlong, toolOffset, angleDegrees].every(Number.isFinite)) return null;
   if ([crank, coupler, rocker].some((value) => value <= 0)) return null;
 
-  const theta2 = angleDegrees * RAD;
+  // The driven member is B-04.  `angleDegrees` is therefore theta_4, not
+  // theta_2; A-02 is the non-driven grounded rocker and T is the output point.
+  const theta4 = angleDegrees * RAD;
   const O2 = { x: 0, y: 0 };
   const O4 = { x: groundX, y: groundY };
-  const A = { x: crank * Math.cos(theta2), y: crank * Math.sin(theta2) };
-  const delta = sub(O4, A);
+  const B = { x: O4.x + rocker * Math.cos(theta4), y: O4.y + rocker * Math.sin(theta4) };
+  const delta = sub(O2, B);
   const distance = magnitude(delta);
-  if (distance < EPS || distance > coupler + rocker + EPS || distance < Math.abs(coupler - rocker) - EPS) return null;
+  if (distance < EPS || distance > coupler + crank + EPS || distance < Math.abs(coupler - crank) - EPS) return null;
 
   const unit = mul(delta, 1 / distance);
   const normal = { x: -unit.y, y: unit.x };
-  const along = (coupler ** 2 - rocker ** 2 + distance ** 2) / (2 * distance);
+  const along = (coupler ** 2 - crank ** 2 + distance ** 2) / (2 * distance);
   const heightSquared = Math.max(0, coupler ** 2 - along ** 2);
-  const base = add(A, mul(unit, along));
-  const B = add(base, mul(normal, config.branch * Math.sqrt(heightSquared)));
+  const base = add(B, mul(unit, along));
+  const A = add(base, mul(normal, config.branch * Math.sqrt(heightSquared)));
   const couplerUnit = mul(sub(B, A), 1 / coupler);
   const couplerNormal = { x: -couplerUnit.y, y: couplerUnit.x };
   const T = add(A, add(mul(couplerUnit, toolAlong), mul(couplerNormal, toolOffset)));
+  const theta2 = Math.atan2(A.y - O2.y, A.x - O2.x);
   const theta3 = Math.atan2(B.y - A.y, B.x - A.x);
-  const theta4 = Math.atan2(B.y - O4.y, B.x - O4.x);
-  let transmission = Math.abs(signedAngleDifference(theta3, theta4)) * DEG;
+  let transmission = Math.abs(signedAngleDifference(theta3, theta2)) * DEG;
   if (transmission > 90) transmission = 180 - transmission;
   return { O2, O4, A, B, T, theta2, theta3, theta4, transmission };
 }
@@ -62,8 +64,8 @@ export function motionWindowReachability(config) {
   const start = Math.min(config.minAngle, config.maxAngle);
   const end = Math.max(config.minAngle, config.maxAngle);
   const ground = Math.hypot(config.groundX, config.groundY);
-  const lowerLimit = Math.abs(config.coupler - config.rocker);
-  const upperLimit = config.coupler + config.rocker;
+  const lowerLimit = Math.abs(config.coupler - config.crank);
+  const upperLimit = config.coupler + config.crank;
   if (!(ground > EPS) || !(config.crank > 0) || !(config.coupler > 0) || !(config.rocker > 0)) {
     return { fullyReachable: false, degenerate: true, minDistance: 0, maxDistance: 0, lowerLimit, upperLimit };
   }
@@ -74,9 +76,9 @@ export function motionWindowReachability(config) {
   includeEquivalentAngle(candidates, phase + 180, start, end);
   const distances = candidates.map((angle) => {
     const theta = angle * RAD;
-    const ax = config.crank * Math.cos(theta);
-    const ay = config.crank * Math.sin(theta);
-    return Math.hypot(config.groundX - ax, config.groundY - ay);
+    const bx = config.groundX + config.rocker * Math.cos(theta);
+    const by = config.groundY + config.rocker * Math.sin(theta);
+    return Math.hypot(bx, by);
   });
   const minDistance = Math.min(...distances);
   const maxDistance = Math.max(...distances);
@@ -94,9 +96,9 @@ export function mechanismClass(config) {
   const ground = Math.hypot(config.groundX, config.groundY);
   const named = [
     { name: "ground", value: ground },
-    { name: "input crank", value: config.crank },
+    { name: "input crank", value: config.rocker },
     { name: "coupler", value: config.coupler },
-    { name: "output rocker", value: config.rocker },
+    { name: "output rocker", value: config.crank },
   ].sort((a, b) => a.value - b.value);
   const shortest = named[0];
   const longest = named[3];

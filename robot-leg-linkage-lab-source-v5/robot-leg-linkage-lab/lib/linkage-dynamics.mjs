@@ -13,21 +13,23 @@ import {
 import { kinematicStateAtAngle } from "./linkage-kinematics.mjs";
 
 function bodyGeometry(config, pose) {
-  const m2 = config.crankMass;
+  // B-04 (theta_4) is the driven crank.  The A-02 member is the grounded
+  // non-driven grounded rocker; T remains the tool/output point carried by the coupler.
+  const m2 = config.rockerMass;
   const legMass = config.legMass;
   const toolMass = config.toolMass;
   const m3 = legMass + toolMass;
-  const m4 = config.rockerMass;
-  const G2 = midpoint(pose.O2, pose.A);
+  const m4 = config.crankMass;
+  const G2 = midpoint(pose.O4, pose.B);
   const legCenter = midpoint(pose.A, pose.T);
   const G3 = m3 > EPS ? mul(add(mul(legCenter, legMass), mul(pose.T, toolMass)), 1 / m3) : legCenter;
-  const G4 = midpoint(pose.O4, pose.B);
+  const G4 = midpoint(pose.O2, pose.A);
   const legLength = magnitude(sub(pose.T, pose.A));
-  const I2 = m2 * config.crank ** 2 / 12;
+  const I2 = m2 * config.rocker ** 2 / 12;
   const I3 = legMass * legLength ** 2 / 12
     + legMass * magnitude(sub(legCenter, G3)) ** 2
     + toolMass * magnitude(sub(pose.T, G3)) ** 2;
-  const I4 = m4 * config.rocker ** 2 / 12;
+  const I4 = m4 * config.crank ** 2 / 12;
   return { G2, G3, G4, I2, I3, I4, m2, m3, m4 };
 }
 
@@ -73,59 +75,69 @@ export function inverseDynamics(config, angleOrState = config.minAngle ?? 0, mot
   const bodyPlus = bodyGeometry(config, plus);
   const first = (before, after) => mul(sub(after, before), 1 / (2 * h));
   const second = (before, current, after) => mul(add(sub(after, mul(current, 2)), before), 1 / (h * h));
-  const omega2 = Number.isFinite(motion.omega) ? motion.omega : 0;
-  const alpha2 = Number.isFinite(motion.alpha) ? motion.alpha : 0;
+  const omega4 = Number.isFinite(motion.omega) ? motion.omega : 0;
+  const alpha4 = Number.isFinite(motion.alpha) ? motion.alpha : 0;
   const acceleration = (before, current, after) => add(
-    mul(second(before, current, after), omega2 ** 2),
-    mul(first(before, after), alpha2),
+    mul(second(before, current, after), omega4 ** 2),
+    mul(first(before, after), alpha4),
   );
 
   const aG2 = acceleration(bodyMinus.G2, body.G2, bodyPlus.G2);
   const aG3 = acceleration(bodyMinus.G3, body.G3, bodyPlus.G3);
   const aG4 = acceleration(bodyMinus.G4, body.G4, bodyPlus.G4);
   const theta3First = signedAngleDifference(plus.theta3, minus.theta3) / (2 * h);
-  const theta4First = signedAngleDifference(plus.theta4, minus.theta4) / (2 * h);
+  const theta2First = signedAngleDifference(plus.theta2, minus.theta2) / (2 * h);
   const theta3Second = (signedAngleDifference(plus.theta3, pose.theta3) - signedAngleDifference(pose.theta3, minus.theta3)) / (h * h);
-  const theta4Second = (signedAngleDifference(plus.theta4, pose.theta4) - signedAngleDifference(pose.theta4, minus.theta4)) / (h * h);
-  const alpha3 = theta3Second * omega2 ** 2 + theta3First * alpha2;
-  const alpha4 = theta4Second * omega2 ** 2 + theta4First * alpha2;
+  const theta2Second = (signedAngleDifference(plus.theta2, pose.theta2) - signedAngleDifference(pose.theta2, minus.theta2)) / (h * h);
+  const alpha3 = theta3Second * omega4 ** 2 + theta3First * alpha4;
+  const alpha2 = theta2Second * omega4 ** 2 + theta2First * alpha4;
   const gravity = { x: 0, y: config.gravity ? -9810 : 0 };
   const load = {
     x: Number.isFinite(externalForce.x) ? externalForce.x : 0,
     y: Number.isFinite(externalForce.y) ? externalForce.y : 0,
   };
 
+  const body2Force = mul(sub(aG2, gravity), body.m2 / 1000);
   const body3Force = sub(mul(sub(aG3, gravity), body.m3 / 1000), load);
+  const body4Force = mul(sub(aG4, gravity), body.m4 / 1000);
+  const rO4 = sub(pose.O4, body.G2);
+  const rB2 = sub(pose.B, body.G2);
   const rA3 = sub(pose.A, body.G3);
   const rB3 = sub(pose.B, body.G3);
   const rT3 = sub(pose.T, body.G3);
-  const body4Force = mul(sub(aG4, gravity), body.m4 / 1000);
-  const rO4 = sub(pose.O4, body.G4);
-  const rB4 = sub(pose.B, body.G4);
-  const rockerArm = sub(rO4, rB4);
+  const rO2 = sub(pose.O2, body.G4);
+  const rA4 = sub(pose.A, body.G4);
 
   const solution = solveLinearSystem([
-    [-1, 0, 1, 0],
-    [0, -1, 0, 1],
-    [rA3.y, -rA3.x, -rB3.y, rB3.x],
-    [0, 0, -rockerArm.y, rockerArm.x],
+    [1, 0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 1, 0, 0, 0, 0, 0],
+    [-rO4.y, rO4.x, -rB2.y, rB2.x, 1, 0, 0, 0, 0],
+    [0, 0, -1, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, -1, 0, 0, 1, 0, 0],
+    [0, 0, rB3.y, -rB3.x, 0, -rA3.y, rA3.x, 0, 0],
+    [0, 0, 0, 0, 0, -1, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, -1, 0, 1],
+    [0, 0, 0, 0, 0, rA4.y, -rA4.x, -rO2.y, rO2.x],
   ], [
+    body2Force.x,
+    body2Force.y,
+    body.I2 * alpha4 / 1000,
     body3Force.x,
     body3Force.y,
     body.I3 * alpha3 / 1000 - cross(rT3, load),
-    body.I4 * alpha4 / 1000 - cross(rO4, body4Force),
+    body4Force.x,
+    body4Force.y,
+    body.I4 * alpha2 / 1000,
   ]);
   if (!solution || solution.some((value) => !Number.isFinite(value))) return null;
 
-  const AReaction = { x: solution[0], y: solution[1] };
+  const O4Reaction = { x: solution[0], y: solution[1] };
   const BReaction = { x: solution[2], y: solution[3] };
-  const O2Reaction = sub(mul(sub(aG2, gravity), body.m2 / 1000), AReaction);
-  const O4Reaction = add(body4Force, BReaction);
-  const torqueNmm = body.I2 * alpha2 / 1000
-    - cross(sub(pose.O2, body.G2), O2Reaction)
-    - cross(sub(pose.A, body.G2), AReaction);
+  const torqueNmm = solution[4];
+  const AReaction = { x: solution[5], y: solution[6] };
+  const O2Reaction = { x: solution[7], y: solution[8] };
 
-  return { torque: torqueNmm / 1000, O2Reaction, AReaction, BReaction, O4Reaction, alpha3, alpha4 };
+  return { torque: torqueNmm / 1000, O2Reaction, AReaction, BReaction, O4Reaction, alpha2, alpha3, alpha4 };
 }
 
 export function dynamicsBreakdown(config, angleOrState = config.minAngle ?? 0, motion = {}, externalForce = { x: 0, y: 0 }) {

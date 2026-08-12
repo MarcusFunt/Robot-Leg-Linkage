@@ -7,8 +7,10 @@ export function kinematics(config, angleDegrees = config.minAngle ?? 0, pose = s
   const plus = solvePose(config, angleDegrees + h * DEG);
   if (!minus || !plus) return null;
   return {
+    omega2Ratio: signedAngleDifference(plus.theta2, minus.theta2) / (2 * h),
     omega3Ratio: signedAngleDifference(plus.theta3, minus.theta3) / (2 * h),
-    omega4Ratio: signedAngleDifference(plus.theta4, minus.theta4) / (2 * h),
+    // theta_4 is the prescribed B-04 input angle, so its velocity ratio is 1.
+    omega4Ratio: 1,
     toolDerivative: mul(sub(plus.T, minus.T), 1 / (2 * h)),
   };
 }

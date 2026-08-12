@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Keep LF line endings: this script is also run through WSL on Windows.
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
