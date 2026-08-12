@@ -19,7 +19,14 @@ hosting="${SITES_PROJECT_ROOT}/dist/.openai/hosting.json"
   exit 66
 }
 
-node --input-type=module - "${worker}" "${hosting}" <<'NODE'
+node_command=(node)
+node_args=("${worker}" "${hosting}")
+if { ! command -v node >/dev/null 2>&1 || [[ "$(command -v node)" == *".sites-runtime/bin/node" ]]; } && command -v node.exe >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1; then
+  node_command=(node.exe)
+  node_args=("$(wslpath -w "${worker}")" "$(wslpath -w "${hosting}")")
+fi
+
+"${node_command[@]}" --input-type=module - "${node_args[@]}" <<'NODE'
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
