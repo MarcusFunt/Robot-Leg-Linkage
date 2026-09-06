@@ -1,0 +1,41 @@
+export type RobotPoint = { x: number; z: number };
+export type WheelPathSample = RobotPoint & { s: number; angle: number; transmission: number };
+export type WheelPathMetrics = {
+  valid: boolean;
+  samples: WheelPathSample[];
+  target: null | { start: RobotPoint; end: RobotPoint; dx: number; dz: number; length: number; angleDeg: number };
+  verticalStroke: number | null;
+  foreAftExcursion: number | null;
+  targetRms: number | null;
+  straightnessRms: number | null;
+  minTransmission: number | null;
+};
+export type DesignSummary = {
+  verticalStroke: number | null;
+  foreAftExcursion: number | null;
+  targetRms: number | null;
+  straightnessRms: number | null;
+  minTransmission: number | null;
+  peakTorque: number | null;
+  peakStaticHoldTorque: number | null;
+};
+export const ASCENTO_HIP_OFFSET_DEG: number;
+export function solverAngleToHipQ(theta4: number, offset?: number): number;
+export function hipQToSolverAngle(q: number, offset?: number): number;
+export function robotFrame(point: { x: number; y: number }): RobotPoint;
+export function wheelDerivative(config: object, angleDegrees: number, stepDegrees?: number): { dxDq: number; dzDq: number } | null;
+export function sampleWheelPath(config: object, stepDegrees?: number): WheelPathSample[];
+export function targetDiagonal(config: object, stepDegrees?: number): null | { start: RobotPoint; end: RobotPoint; dx: number; dz: number; length: number; angleDeg: number };
+export function wheelPathMetrics(config: object, targetConfig?: object, stepDegrees?: number): WheelPathMetrics;
+export function referenceCom(config: object, offsetX?: number, offsetZ?: number): RobotPoint;
+export function takeoffMetrics(config: object, targetConfig?: object, options?: { angle?: number; comOffsetX?: number; comOffsetZ?: number }): null | {
+  angle: number;
+  wheel: RobotPoint;
+  com: RobotPoint;
+  wheelMinusComX: number;
+  dxDq: number | null;
+  dzDq: number | null;
+  targetAngleDeg: number | null;
+};
+export function summarizeDesign(config: object, targetConfig?: object): DesignSummary;
+export function classifyScreeningCheck(input: { index: number; blocked?: boolean; disabled?: boolean; warning?: boolean; danger?: boolean; pass?: boolean }): { category: string; state: "critical" | "warning" | "pass" | "neutral" };
