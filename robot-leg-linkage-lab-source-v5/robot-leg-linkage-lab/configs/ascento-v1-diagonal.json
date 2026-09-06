@@ -1,0 +1,59 @@
+{
+  "name": "Ascento-inspired V1 diagonal",
+  "status": "image-derived starting geometry; not official Ascento CAD dimensions",
+  "purpose": "Fast V1 seed for balancing simulation before later parametric optimization.",
+  "coordinateSystem": {
+    "x": "+forward/right",
+    "y": "+up",
+    "inputAngle": "theta4, global angle of O4-to-B, wrapped to 0-360 degrees"
+  },
+  "scaleReference": {
+    "HI_mm": 100,
+    "ratio_HP_HI_PK_IK_IW": [0.5, 1.0, 1.0, 0.25, 1.0],
+    "bodyPivotMountAngle_H_to_P_deg": 55
+  },
+  "labJointMapping": {
+    "O2": "P - upper fixed body pivot",
+    "O4": "H - hip/input pivot",
+    "A": "K - knee joint",
+    "B": "I - inner joint",
+    "T": "W - wheel center"
+  },
+  "labConfig": {
+    "groundX": -28.6788218176,
+    "groundY": -40.9576022144,
+    "crank": 100,
+    "coupler": 25,
+    "rocker": 100,
+    "toolAlong": 125,
+    "toolOffset": 0,
+    "minAngle": 310,
+    "maxAngle": 355,
+    "motionProfile": "sinusoidal",
+    "maxVelocity": 360,
+    "maxAcceleration": 1500,
+    "maxJerk": 10000,
+    "cycleTime": 4.2,
+    "branch": -1
+  },
+  "videoConfiguration": {
+    "description": "Smooth looping preview of the same V1 motion window used in the corrected visualization.",
+    "profile": "sinusoidal",
+    "cycleTimeSeconds": 4.2,
+    "inputAngleRangeDeg": [310, 355],
+    "equivalentVisualizationQRangeDeg": [105, 60],
+    "loop": true,
+    "recommendedCameraFit": "motion-window",
+    "showWheelPath": true
+  },
+  "referencePose": {
+    "theta4_deg": 337,
+    "equivalentVisualizationQ_deg": 78,
+    "expectedTopology": [
+      "P is above and forward of H",
+      "I is below and forward of H",
+      "K is above I",
+      "W is below I on the opposite extension of K-I"
+    ]
+  }
+}

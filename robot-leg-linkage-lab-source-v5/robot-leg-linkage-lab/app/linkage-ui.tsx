@@ -63,7 +63,8 @@ type FieldSpec = Rule & {
 type Group = { title: string; note: string; fields: FieldSpec[] };
 export type Vec = { x: number; y: number };
 export type PlotPoint = { x: number; y: number | null };
-export const DEFAULT_CONFIG: Config = {
+
+export const GENERIC_DEMO_CONFIG: Config = {
   groundX: 45,
   groundY: -40,
   crank: 40,
@@ -95,6 +96,29 @@ export const DEFAULT_CONFIG: Config = {
   motorContinuous: 0.6,
   motorPeak: 1.2,
 };
+
+// Image-derived Ascento-inspired V1 seed. This is deliberately a practical
+// starting geometry for simulation, not a claim about official Ascento CAD
+// dimensions. Lab mapping: O2=P, O4=H, A=K, B=I, T=W. With +y upward,
+// O2->O4 points down/rearward so the physical H->P chassis line rises forward
+// by 55 degrees. K-I-W is collinear and W extends 100 mm beyond I.
+export const ASCENTO_V1_CONFIG: Config = {
+  ...GENERIC_DEMO_CONFIG,
+  groundX: -28.6788218176,
+  groundY: -40.9576022144,
+  crank: 100,
+  coupler: 25,
+  rocker: 100,
+  toolAlong: 125,
+  toolOffset: 0,
+  minAngle: 310,
+  maxAngle: 355,
+  motionProfile: "sinusoidal",
+  cycleTime: 4.2,
+  branch: -1,
+};
+
+export const DEFAULT_CONFIG: Config = ASCENTO_V1_CONFIG;
 export function NumericInput({
   label,
   unit,
